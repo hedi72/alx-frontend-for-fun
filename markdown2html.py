@@ -1,35 +1,72 @@
-import sys
+#!/usr/bin/python3
+"""This script takes 2 files as argumrnts
+    first argument: markdown file
+    second argument: html file"""
+
+from sys import argv, stderr
 import os
 
-def convert_markdown_to_html(markdown_file, output_file):
-    # Check if the Markdown file exists
-    if not os.path.exists(markdown_file):
-        print(f"Missing {markdown_file}", file=sys.stderr)
-        sys.exit(1)
-
-    # Perform Markdown to HTML conversion here
-    # For demonstration purposes, let's assume it's a simple copy operation
-    with open(markdown_file, 'r') as f:
-        markdown_content = f.read()
-
-    # Convert Markdown to HTML here
-    html_content = markdown_content  # Placeholder for actual conversion
-
-    # Write HTML content to the output file
-    with open(output_file, 'w') as f:
-        f.write(html_content)
-
-    sys.exit(0)
 
 if __name__ == "__main__":
-    # Check if correct number of arguments are provided
-    if len(sys.argv) != 3:
-        print("Usage: ./markdown2html.py <Markdown_file> <Output_file>", file=sys.stderr)
-        sys.exit(1)
+    if (len(argv) <= 2):
+        print ('Usage: ./markdown2html.py README.md README.html', file=stderr)
+        exit(1)
+    elif (not os.path.exists(argv[1])):
+        print ('Missing {}'.format(argv[1]), file=stderr)
+        exit(1)
+    else:
+        with open(argv[1], 'r') as md_file:
+            lines = md_file.readlines()
+        L = []
+        unordered_list = []
+        ordered_list = []
+        paragraphs = []
+        p = []
+        for line in lines:
+            if line.startswith('#'):
+                level = line.count('#')
+                L.append('<h{}>{}</h{}>'.format(level,
+                                                line[level+1:],
+                                                level))
+            elif line.startswith('- '):
+                unordered_list.append('<li>{}</li>'.format(line[2:-1]))
+            elif line.startswith('* '):
+                ordered_list.append('<li>{}</li>'.format(line[2:-1]))
+            else:
+                paragraphs.append(line)
+                s = "".join(paragraphs)
+                p = s.split('\n\n')
 
-    # Extract arguments
-    markdown_file = sys.argv[1]
-    output_file = sys.argv[2]
+        if unordered_list != []:
+            L.append('<ul>')
+            for elm in unordered_list:
+                L.append('\t'+elm)
+            L.append('</ul>')
 
-    # Convert Markdown to HTML
-    convert_markdown_to_html(markdown_file, output_file)
+        if ordered_list != []:
+            L.append('<ol>')
+            for elm in ordered_list:
+                L.append('\t'+elm)
+            L.append('</ol>')
+
+        if p != []:
+            for item in p:
+                if item != '':
+                    if '\n' in item.strip():
+                        item = item.replace('\n', '<br />')
+                    L.append('<p>')
+                    L.append('\t'+item.strip())
+                    L.append('</p>')
+
+        for i, item in enumerate(L):
+            if "**" in item:
+                b = item.split("**")
+                L[i] = item.replace("**{}**".format(b[1]),
+                                    "<b>{}</b>".format(b[1]))
+            if "__" in item:
+                b = item.split("__")
+                L[i] = item.replace("__{}__".format(b[1]),
+                                    "<em>{}</em>".format(b[1]))
+        with open(argv[2], 'w') as html_file:
+            html_file.writelines('\n'.join(L))
+        exit(0)
